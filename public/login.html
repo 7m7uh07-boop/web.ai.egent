@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تسجيل الدخول - AI Builder</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-body">
+    <div class="login-container">
+        <h2>منصة بناء وكلاء الذكاء الاصطناعي</h2>
+        <p style="color:#aaa; font-size:14px;">قم بإنشاء حساب لحفظ إعداداتك</p>
+        <input type="text" id="username" placeholder="اسم المستخدم">
+        <input type="password" id="password" placeholder="كلمة المرور">
+        <div class="buttons">
+            <button onclick="authenticate('login')">تسجيل الدخول</button>
+            <button class="secondary" onclick="authenticate('register')">إنشاء حساب جديد</button>
+        </div>
+        <p id="msg" style="margin-top:15px; color:#ffcc00;"></p>
+    </div>
+    <script>
+        async function authenticate(action) {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            if(!u || !p) return alert('يرجى ملء جميع الحقول');
+            
+            const res = await fetch('/api/auth', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: u, password: p, action: action})
+            });
+            const data = await res.json();
+            document.getElementById('msg').innerText = data.message;
+            if(data.success && action === 'login') {
+                localStorage.setItem('currentUser', u);
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>

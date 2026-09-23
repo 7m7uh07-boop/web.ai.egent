@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Agent Canvas</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="logo">✨ مساحة عمل الذكاء الاصطناعي</div>
+        <div class="user-area">
+            <span id="user-display"></span>
+            <button onclick="logout()" class="btn-logout">تسجيل الخروج</button>
+        </div>
+    </header>
+    
+    <div class="canvas" id="canvas">
+        <svg class="lines">
+            <path d="M 200 120 C 300 120, 250 200, 450 150" stroke="#444" stroke-width="2" stroke-dasharray="5,5" fill="transparent"/>
+            <path d="M 200 120 C 300 120, 250 300, 450 300" stroke="#444" stroke-width="2" stroke-dasharray="5,5" fill="transparent"/>
+        </svg>
+        
+        <div class="node ai-node" style="top: 80px; left: 50px;" onclick="openModal('ai-modal')">
+            <div class="node-title">🤖 إعدادات النموذج (Agent)</div>
+            <div class="node-desc">انقر لإضافة API Key</div>
+        </div>
+        
+        <div class="node sys-node" style="top: 250px; left: 50px;" onclick="openModal('sys-modal')">
+            <div class="node-title">⚙️ تعليمات النظام</div>
+            <div class="node-desc">برومبت الشخصية والقواعد</div>
+        </div>
+        
+        <div class="node whatsapp" style="top: 100px; left: 450px;" onclick="openModal('wa-modal')">
+            <div class="node-title">WhatsApp</div>
+            <div class="node-desc status-red">🔴 غير متصل - انقر للربط</div>
+        </div>
+        
+        <div class="node telegram" style="top: 250px; left: 450px;" onclick="openModal('tg-modal')">
+            <div class="node-title">Telegram</div>
+            <div class="node-desc status-red">🔴 غير متصل - أضف Token</div>
+        </div>
+    </div>
+
+    <!-- AI API Modal -->
+    <div id="ai-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('ai-modal')">&times;</span>
+            <h3>إعدادات الذكاء الاصطناعي</h3>
+            <label>اختر مزود الخدمة:</label>
+            <select id="provider" onchange="checkProvider()">
+                <option value="gemini">Google Gemini</option>
+                <option value="claude">Anthropic Claude</option>
+                <option value="openai">OpenAI</option>
+                <option value="other">أخرى (Other / Custom)</option>
+            </select>
+            <div id="other-url-div" style="display:none; margin-top:10px;">
+                <label>رابط API (Endpoint):</label>
+                <input type="text" id="api-url" placeholder="https://api.example.com/v1">
+            </div>
+            <label style="margin-top:10px; display:block;">مفتاح API Key (مشفّر):</label>
+            <input type="password" id="api-key" placeholder="ألصق المفتاح هنا... (ex: sk-...)">
+            <button class="save-btn" onclick="saveSettings()">حفظ الإعدادات</button>
+        </div>
+    </div>
+
+    <!-- System Prompt Modal -->
+    <div id="sys-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('sys-modal')">&times;</span>
+            <h3>تعليمات النظام (System Prompt)</h3>
+            <p style="font-size: 12px; color: #aaa;">حدد كيف يجب أن يتصرف وكيلك الذكي.</p>
+            <textarea id="system-prompt" rows="8" placeholder="أنت مساعد ذكي واحترافي. اسمك هو..."></textarea>
+            <button class="save-btn" onclick="saveSettings()">حفظ التعليمات</button>
+        </div>
+    </div>
+
+    <!-- WhatsApp Modal -->
+    <div id="wa-modal" class="modal">
+        <div class="modal-content" style="text-align: center;">
+            <span class="close" onclick="closeModal('wa-modal')">&times;</span>
+            <h3>ربط حساب WhatsApp</h3>
+            <p style="color: #aaa; font-size: 14px;">امسح رمز الاستجابة السريعة (QR Code) باستخدام تطبيق واتساب لربط رقمك كـ Bot.</p>
+            <img id="wa-qr-img" src="" alt="جاري التحميل..." style="width:200px; height:200px; margin:15px auto; background:#fff; padding:10px; border-radius:10px; display:block;">
+            <button class="secondary" onclick="fetchWaQR()">تحديث الرمز 🔄</button>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
