@@ -24,8 +24,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ==========================================
-// تخزين دائم على القرص (لتفادي فقدان كل شيء عند
-// إعادة تشغيل السيرفر - كان هذا سبب رئيسي لأخطاء "الموقع معطوب")
+// تخزين دائم على القرص
 // ==========================================
 const DATA_DIR = path.join(__dirname, 'data');
 const STORE_FILE = path.join(DATA_DIR, 'store.json');
@@ -99,7 +98,7 @@ function deleteAgentFromStore(username, agentId) {
 // ==========================================
 // نظام تسجيل الدخول / إنشاء الحساب
 // ==========================================
-const sessions = {}; // token -> username (في الذاكرة، تُنشأ من جديد عند إعادة التشغيل)
+const sessions = {};
 const SESSION_COOKIE = 'sid';
 
 function parseCookies(req) {
@@ -224,7 +223,7 @@ const waRestartAttempts = {};
 function botKey(username, agentId) { return `${username}::${agentId}`; }
 
 // ==========================================
-// محركات الذكاء الاصطناعي (تدعم عدة مزودين فعليًا)
+// محركات الذكاء الاصطناعي
 // ==========================================
 async function generateGeminiResponse(agent, userMessage) {
     const apiKey = agent.apiKeys[Math.floor(Math.random() * agent.apiKeys.length)];
@@ -370,11 +369,15 @@ function extractWhatsAppText(message) {
 // ==========================================
 // إدارة واتساب الحقيقي (Baileys)
 // ==========================================
+const waStarting = new Set();
+
 async function startWhatsAppBot(username, agentId, isRestart = false) {
     const key = botKey(username, agentId);
     if (activeWhatsAppSockets[key] && !isRestart) {
         return activeWhatsAppSockets[key];
     }
+    if (waStarting.has(key)) return;
+    waStarting.add(key);
 
     const authDir = path.join(DATA_DIR, `auth_wa_${username}_${agentId}`);
     const { state, saveCreds } = await useMultiFileAuthState(authDir);
@@ -425,6 +428,7 @@ async function startWhatsAppBot(username, agentId, isRestart = false) {
                 setTimeout(() => startWhatsAppBot(username, agentId, true), 1500);
             } else {
                 console.error(`❌ فشل ربط واتساب [${key}] بعد عدة محاولات.`);
+                waStarting.delete(key);
                 const agent = getAgent(username, agentId);
                 if (agent) { agent.channels.wa.connected = false; setAgent(username, agent); }
                 delete whatsappQRCodes[key];
@@ -455,6 +459,7 @@ async function startWhatsAppBot(username, agentId, isRestart = false) {
     });
 
     activeWhatsAppSockets[key] = sock;
+    waStarting.delete(key);
     return sock;
 }
 
@@ -502,7 +507,7 @@ function startDiscordBot(username, agentId, token) {
 }
 
 // ==========================================
-// المسارات البرمجية (APIs) - كلها محمية بتسجيل الدخول
+// المسارات البرمجية (APIs)
 // ==========================================
 app.get('/api/agents', requireAuth, (req, res) => {
     res.json(Object.values(getUserAgents(req.user)));
