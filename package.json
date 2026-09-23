@@ -1,0 +1,13 @@
+{
+  "name": "ai-agent-builder",
+  "version": "1.0.0",
+  "description": "AI Agent Builder Platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "qrcode": "^1.5.3"
+  }
+}
