@@ -131,8 +131,15 @@
         <option value="gemini">Google Gemini (مثالي وسريع)</option>
         <option value="openai">OpenAI (GPT-4o / GPT-3.5)</option>
         <option value="anthropic">Anthropic (Claude 3.5)</option>
+        <option value="imfa">وكيل IMFA (Agent مخصص)</option>
         <option value="custom">نماذج معروفة / أخرى (Custom Endpoint)</option>
       </select>
+
+      <div id="imfa-agent-details" style="display:none; margin-top:10px;">
+        <label>معرّف وكيل IMFA (Agent ID):</label>
+        <input type="text" id="input-imfa-agent-id" placeholder="مثال: e3aenddt">
+        <p style="font-size:11px; color:var(--muted); margin-top:6px;">أدخل مفتاح IMFA السرّي (imfa_secret_...) في حقل "مفاتيح API" بالأسفل.</p>
+      </div>
 
       <div id="custom-model-details" style="display:none; margin-top:10px;">
         <input type="text" id="input-custom-endpoint" placeholder="رابط الـ Base URL (مثال: https://api.together.xyz/v1)">
