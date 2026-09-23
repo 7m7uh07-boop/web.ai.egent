@@ -1,13 +1,13 @@
 {
-  "name": "ai-agent-builder",
+  "name": "minsej-platform",
   "version": "1.0.0",
-  "description": "AI Agent Builder Platform",
+  "description": "لوحة الربط لمِنسَج - إدارة المساعدين الذكية والقنوات",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "qrcode": "^1.5.3"
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
   }
 }
