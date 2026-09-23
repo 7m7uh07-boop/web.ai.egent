@@ -1,14 +1,18 @@
 {
   "name": "minsej-platform",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "لوحة مِنسَج التشغيلية الحقيقية للبوتات والذكاء الاصطناعي",
   "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "@whiskeysockets/baileys": "^6.7.12",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "discord.js": "^14.16.3",
     "express": "^4.19.2",
