@@ -1,90 +1,258 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <title>AI Agent Canvas</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مِنسَج — لوحة الربط</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <div class="logo">✨ مساحة عمل الذكاء الاصطناعي</div>
-        <div class="user-area">
-            <span id="user-display"></span>
-            <button onclick="logout()" class="btn-logout">تسجيل الخروج</button>
-        </div>
-    </header>
+
+  <!-- الشريط العلوي -->
+  <div class="topbar">
+    <button class="icon-btn" id="btn-menu" title="خيارات إضافية">⋮</button>
+    <button class="pill publish" id="btn-publish">نشر <span style="font-size:11px;">▶</span></button>
+    <button class="pill upgrade" id="btn-upgrade">ترقية ✦</button>
     
-    <div class="canvas" id="canvas">
-        <svg class="lines">
-            <path d="M 200 120 C 300 120, 250 200, 450 150" stroke="#444" stroke-width="2" stroke-dasharray="5,5" fill="transparent"/>
-            <path d="M 200 120 C 300 120, 250 300, 450 300" stroke="#444" stroke-width="2" stroke-dasharray="5,5" fill="transparent"/>
-        </svg>
-        
-        <div class="node ai-node" style="top: 80px; left: 50px;" onclick="openModal('ai-modal')">
-            <div class="node-title">🤖 إعدادات النموذج (Agent)</div>
-            <div class="node-desc">انقر لإضافة API Key</div>
-        </div>
-        
-        <div class="node sys-node" style="top: 250px; left: 50px;" onclick="openModal('sys-modal')">
-            <div class="node-title">⚙️ تعليمات النظام</div>
-            <div class="node-desc">برومبت الشخصية والقواعد</div>
-        </div>
-        
-        <div class="node whatsapp" style="top: 100px; left: 450px;" onclick="openModal('wa-modal')">
-            <div class="node-title">WhatsApp</div>
-            <div class="node-desc status-red">🔴 غير متصل - انقر للربط</div>
-        </div>
-        
-        <div class="node telegram" style="top: 250px; left: 450px;" onclick="openModal('tg-modal')">
-            <div class="node-title">Telegram</div>
-            <div class="node-desc status-red">🔴 غير متصل - أضف Token</div>
-        </div>
-    </div>
-
-    <!-- AI API Modal -->
-    <div id="ai-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('ai-modal')">&times;</span>
-            <h3>إعدادات الذكاء الاصطناعي</h3>
-            <label>اختر مزود الخدمة:</label>
-            <select id="provider" onchange="checkProvider()">
-                <option value="gemini">Google Gemini</option>
-                <option value="claude">Anthropic Claude</option>
-                <option value="openai">OpenAI</option>
-                <option value="other">أخرى (Other / Custom)</option>
-            </select>
-            <div id="other-url-div" style="display:none; margin-top:10px;">
-                <label>رابط API (Endpoint):</label>
-                <input type="text" id="api-url" placeholder="https://api.example.com/v1">
-            </div>
-            <label style="margin-top:10px; display:block;">مفتاح API Key (مشفّر):</label>
-            <input type="password" id="api-key" placeholder="ألصق المفتاح هنا... (ex: sk-...)">
-            <button class="save-btn" onclick="saveSettings()">حفظ الإعدادات</button>
-        </div>
-    </div>
-
-    <!-- System Prompt Modal -->
-    <div id="sys-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('sys-modal')">&times;</span>
-            <h3>تعليمات النظام (System Prompt)</h3>
-            <p style="font-size: 12px; color: #aaa;">حدد كيف يجب أن يتصرف وكيلك الذكي.</p>
-            <textarea id="system-prompt" rows="8" placeholder="أنت مساعد ذكي واحترافي. اسمك هو..."></textarea>
-            <button class="save-btn" onclick="saveSettings()">حفظ التعليمات</button>
-        </div>
-    </div>
-
-    <!-- WhatsApp Modal -->
-    <div id="wa-modal" class="modal">
-        <div class="modal-content" style="text-align: center;">
-            <span class="close" onclick="closeModal('wa-modal')">&times;</span>
-            <h3>ربط حساب WhatsApp</h3>
-            <p style="color: #aaa; font-size: 14px;">امسح رمز الاستجابة السريعة (QR Code) باستخدام تطبيق واتساب لربط رقمك كـ Bot.</p>
-            <img id="wa-qr-img" src="" alt="جاري التحميل..." style="width:200px; height:200px; margin:15px auto; background:#fff; padding:10px; border-radius:10px; display:block;">
-            <button class="secondary" onclick="fetchWaQR()">تحديث الرمز 🔄</button>
-        </div>
+    <div class="agent-select">
+      <select id="agent-dropdown" style="background:transparent; color:#fff; border:none; font-weight:700; font-family:'Tajawal'; cursor:pointer;">
+        <!-- سيتم التعبئة ديناميكياً -->
+      </select>
     </div>
     
-    <script src="script.js"></script>
+    <button class="icon-btn" id="btn-back" title="حفظ والعودة">←</button>
+  </div>
+
+  <!-- مساحة الرسم -->
+  <div class="canvas-shell" id="canvas-shell">
+    <div class="canvas" id="canvas-target">
+
+      <svg class="wires" viewBox="0 0 1180 760" preserveAspectRatio="none">
+        <path id="wire-agent-hub" class="wire to-hub" d="M 260 365 C 320 365, 320 260, 380 250" />
+        <path id="wire-instructions-hub" class="wire to-hub" d="M 570 250 C 700 250, 700 250, 800 250" />
+        <path id="wire-wa" class="wire to-wa"  d="M 800 245 C 900 245, 900 120, 1030 115" />
+        <path id="wire-tg" class="wire to-tg" d="M 800 250 L 1030 265" />
+        <path id="wire-dc" class="wire to-dc"  d="M 800 258 C 900 258, 900 415, 960 420" />
+      </svg>
+
+      <div class="dock">
+        <div class="dot-icon" style="background:#1C3A57;color:var(--tg);" title="Telegram">✈</div>
+        <div class="dot-icon" style="background:#242042;color:var(--dc);" title="Discord">◆</div>
+        <div class="dot-icon" style="background:#123424;color:var(--wa);" title="WhatsApp">☎</div>
+      </div>
+
+      <!-- عقدة المساعد -->
+      <div class="node agent" id="node-agent" style="cursor:pointer;">
+        <div class="title"><span class="avatar"></span><span id="display-agent-name">new agent</span></div>
+        <div class="sub" id="display-agent-type">IMFA Agents Default</div>
+      </div>
+
+      <!-- عقدة التعليمات -->
+      <div class="node instructions" id="node-instructions" style="cursor:pointer;">
+        <div class="title">تعليمات النظام ‹</div>
+        <div class="bar"><i id="instructions-progress" style="width: 0%;"></i></div>
+        <div class="count" id="instructions-count">0 / 5000</div>
+      </div>
+
+      <!-- عقدة مزود AI والنماذج -->
+      <div class="node hub" id="node-hub" style="cursor:pointer;">
+        <div class="globe"></div>
+        <div>
+          <div class="title">رد الروبوت</div>
+          <div class="sub" id="display-provider-name" style="font-size:10px; color:var(--signal);">Gemini</div>
+        </div>
+      </div>
+
+      <!-- عقدة واتساب -->
+      <div class="node channel wa" id="node-wa" style="cursor:pointer;">
+        <div class="top">
+          <div class="ico" style="background:#123424;color:var(--wa);">☎</div>
+          <div><div class="title">WhatsApp</div></div>
+        </div>
+        <div class="status"><i id="dot-wa"></i> <span id="text-wa">غير متصل</span></div>
+      </div>
+
+      <!-- عقدة تلغرام -->
+      <div class="node channel tg" id="node-tg" style="cursor:pointer;">
+        <div class="top">
+          <div class="ico" style="background:#1C3A57;color:var(--tg);">✈</div>
+          <div><div class="title">Telegram</div></div>
+        </div>
+        <div class="status"><i id="dot-tg"></i> <span id="text-tg">غير متصل</span></div>
+      </div>
+
+      <!-- عقدة ديسكورد -->
+      <div class="node channel dc" id="node-dc" style="cursor:pointer;">
+        <div class="top">
+          <div class="ico" style="background:#242042;color:var(--dc);">◆</div>
+          <div><div class="title">Discord</div></div>
+        </div>
+        <div class="status"><i id="dot-dc"></i> <span id="text-dc">غير متصل</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- أزرار التكبير/التصغير -->
+  <div class="zoom">
+    <button id="zoom-in">+</button>
+    <button id="zoom-out">−</button>
+    <button id="zoom-reset" style="font-size:12px;">⤢</button>
+  </div>
+  <div class="hint">اسحب يمينًا ويسارًا لاستعراض اللوحة</div>
+
+  <!-- Nodal Modals (النوافذ المنبثقة) -->
+
+  <!-- نافذة تعليمات النظام -->
+  <div class="modal-overlay" id="modal-instructions">
+    <div class="modal">
+      <h3>🧠 تعديل تعليمات النظام (System Prompt)</h3>
+      <p style="font-size:12px; color:var(--muted);">اكتب التوجيهات والقواعد التي سيلتزم بها المساعد أثناء الرد.</p>
+      <textarea id="input-instructions" rows="8" placeholder="مثال: أنت مساعد مبيعات محترف ومؤدب، أجب بإيجاز وشجع العملاء..."></textarea>
+      <div style="text-align:left; font-size:11px; color:var(--muted);" id="modal-instructions-counter">0 / 5000</div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModals()">إلغاء</button>
+        <button class="btn btn-primary" id="save-instructions">حفظ التعليمات</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة مزود الذكاء الاصطناعي ومفاتيح API لا نهائية -->
+  <div class="modal-overlay" id="modal-provider">
+    <div class="modal">
+      <h3>🤖 اختيار النموذج ومفاتيح API</h3>
+      <p style="font-size:12px; color:var(--muted);">اختر النموذج وأضف العدد الذي تريده من مفاتيح API للتناوب بينها.</p>
+      
+      <label>نموذج الذكاء الاصطناعي:</label>
+      <select id="select-provider">
+        <option value="gemini">Google Gemini (مثالي وسريع)</option>
+        <option value="openai">OpenAI (GPT-4o / GPT-3.5)</option>
+        <option value="anthropic">Anthropic (Claude 3.5)</option>
+        <option value="custom">نماذج معروفة / أخرى (Custom Endpoint)</option>
+      </select>
+
+      <div id="custom-model-details" style="display:none; margin-top:10px;">
+        <input type="text" id="input-custom-endpoint" placeholder="رابط الـ Base URL (مثال: https://api.together.xyz/v1)">
+        <input type="text" id="input-custom-model-name" placeholder="اسم النموذج (مثال: meta-llama/Llama-3-70b)">
+      </div>
+
+      <h4 style="margin-top:15px; margin-bottom:5px;">🔑 مفاتيح API (عدد غير محدود)</h4>
+      <div id="api-keys-container">
+        <!-- يتم إدراج حقول المفاتيح هنا -->
+      </div>
+      <button type="button" class="btn btn-secondary" style="width:100%; margin-top:8px;" id="add-api-key-btn">+ إضافة مفتاح API جديد</button>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModals()">إلغاء</button>
+        <button class="btn btn-primary" id="save-provider">حفظ الإعدادات</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة ربط تلغرام -->
+  <div class="modal-overlay" id="modal-tg">
+    <div class="modal">
+      <h3>✈ ربط قناة Telegram</h3>
+      <p style="font-size:12px; color:var(--muted);">أدخل توكن البوت الخاص بك من @BotFather أو رقم الهاتف لربطه كـ Userbot.</p>
+      <label>Bot Token:</label>
+      <input type="text" id="input-tg-token" placeholder="مثال: 123456789:ABCdefGHIjklmno...">
+      <div class="modal-actions">
+        <button class="btn btn-danger" id="disconnect-tg">إلغاء الربط</button>
+        <button class="btn btn-primary" id="save-tg">حفظ وتوصيل</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة ربط ديسكورد -->
+  <div class="modal-overlay" id="modal-dc">
+    <div class="modal">
+      <h3>◆ ربط قناة Discord</h3>
+      <p style="font-size:12px; color:var(--muted);">أدخل Bot Token الخاص بك من Discord Developer Portal.</p>
+      <label>Bot Token:</label>
+      <input type="text" id="input-dc-token" placeholder="أدخل توكن بوت ديسكورد هنا...">
+      <div class="modal-actions">
+        <button class="btn btn-danger" id="disconnect-dc">إلغاء الربط</button>
+        <button class="btn btn-primary" id="save-dc">حفظ وتوصيل</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة ربط واتساب -->
+  <div class="modal-overlay" id="modal-wa">
+    <div class="modal">
+      <h3>☎ ربط قناة WhatsApp</h3>
+      <p style="font-size:12px; color:var(--muted);">امسح رمز QR من تطبيق واتساب لربط الحساب.</p>
+      <div style="text-align:center; padding:15px; background:#fff; width:160px; margin:auto; border-radius:10px;">
+        <div id="qr-placeholder" style="color:#000; font-weight:bold; font-size:12px;">[ رمز QR افتراضي ]</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-danger" id="disconnect-wa">إلغاء الربط</button>
+        <button class="btn btn-primary" id="save-wa">تأكيد الاتصال</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة الترقية -->
+  <div class="modal-overlay" id="modal-upgrade">
+    <div class="modal" style="max-width:500px;">
+      <h3>✦ ترقية الخطة</h3>
+      <p style="font-size:13px; color:var(--muted);">اختر الخطة المناسبة لاحتياجاتك وزد من قدرات مساعديك.</p>
+      <table style="width:100%; text-align:right; border-collapse:collapse; font-size:12px; margin-top:10px;">
+        <tr style="border-bottom:1px solid var(--line-c);">
+          <th style="padding:8px;">الميزة</th>
+          <th>المجانية</th>
+          <th style="color:var(--signal);">الاحترافية (Pro)</th>
+        </tr>
+        <tr style="border-bottom:1px solid var(--line-c);">
+          <td style="padding:8px;">عدد المساعدين</td>
+          <td>1 مساعد</td>
+          <td>غير محدود</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--line-c);">
+          <td style="padding:8px;">الرسائل شهرياً</td>
+          <td>1,000</td>
+          <td>100,000</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;">القنوات المتاحة</td>
+          <td>قناة واحدة</td>
+          <td>جميع القنوات معاً</td>
+        </tr>
+      </table>
+      <div class="modal-actions">
+        <button class="btn btn-primary" style="width:100%;" onclick="alert('سيتم توجيهك لبوابة الدفع قريبًا!')">الترقية الآن ($19/شهر)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة الخيارات الإضافية (⋮) -->
+  <div class="modal-overlay" id="modal-menu">
+    <div class="modal">
+      <h3>⋮ خيارات المساعد</h3>
+      <button class="btn btn-secondary" style="width:100%; margin-bottom:8px;" id="menu-rename">إعادة تسمية المساعد</button>
+      <button class="btn btn-secondary" style="width:100%; margin-bottom:8px;" id="menu-duplicate">تكرار المساعد (Duplicate)</button>
+      <button class="btn btn-secondary" style="width:100%; margin-bottom:8px;" id="menu-export">تصدير سجل المحادثات (JSON)</button>
+      <button class="btn btn-danger" style="width:100%;" id="menu-delete">حذف المساعد</button>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModals()">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة النشر / التنبيه بالأخطاء -->
+  <div class="modal-overlay" id="modal-publish-result">
+    <div class="modal">
+      <h3 id="publish-result-title">نتيجة النشر</h3>
+      <div id="publish-result-body" style="margin:15px 0; font-size:13px;"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="closeModals()">حسناً</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
