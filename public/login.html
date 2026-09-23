@@ -1,39 +1,88 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <title>تسجيل الدخول - AI Builder</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>تسجيل الدخول — مِنسَج</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body class="login-body">
-    <div class="login-container">
-        <h2>منصة بناء وكلاء الذكاء الاصطناعي</h2>
-        <p style="color:#aaa; font-size:14px;">قم بإنشاء حساب لحفظ إعداداتك</p>
-        <input type="text" id="username" placeholder="اسم المستخدم">
-        <input type="password" id="password" placeholder="كلمة المرور">
-        <div class="buttons">
-            <button onclick="authenticate('login')">تسجيل الدخول</button>
-            <button class="secondary" onclick="authenticate('register')">إنشاء حساب جديد</button>
-        </div>
-        <p id="msg" style="margin-top:15px; color:#ffcc00;"></p>
+  <div class="login-container">
+    <div class="login-logo">م</div>
+    <h2>منصّة مِنسَج</h2>
+    <p class="login-sub">أنشئ حسابك لبناء وإدارة مساعدي الذكاء الاصطناعي الخاصين بك</p>
+
+    <div class="login-tabs">
+      <button type="button" class="login-tab active" id="tab-login">تسجيل الدخول</button>
+      <button type="button" class="login-tab" id="tab-register">حساب جديد</button>
     </div>
-    <script>
-        async function authenticate(action) {
-            const u = document.getElementById('username').value;
-            const p = document.getElementById('password').value;
-            if(!u || !p) return alert('يرجى ملء جميع الحقول');
-            
-            const res = await fetch('/api/auth', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({username: u, password: p, action: action})
-            });
-            const data = await res.json();
-            document.getElementById('msg').innerText = data.message;
-            if(data.success && action === 'login') {
-                localStorage.setItem('currentUser', u);
-                window.location.href = 'index.html';
-            }
+
+    <input type="text" id="username" placeholder="اسم المستخدم" autocomplete="username">
+    <input type="password" id="password" placeholder="كلمة المرور" autocomplete="current-password">
+
+    <button class="login-submit" id="submit-btn">تسجيل الدخول</button>
+    <p id="msg"></p>
+  </div>
+
+  <script>
+    let mode = 'login';
+    const tabLogin = document.getElementById('tab-login');
+    const tabRegister = document.getElementById('tab-register');
+    const submitBtn = document.getElementById('submit-btn');
+    const msg = document.getElementById('msg');
+
+    function setMode(m) {
+      mode = m;
+      tabLogin.classList.toggle('active', m === 'login');
+      tabRegister.classList.toggle('active', m === 'register');
+      submitBtn.innerText = m === 'login' ? 'تسجيل الدخول' : 'إنشاء الحساب';
+      msg.innerText = '';
+    }
+    tabLogin.addEventListener('click', () => setMode('login'));
+    tabRegister.addEventListener('click', () => setMode('register'));
+
+    async function submit() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      if (!username || !password) {
+        msg.innerText = 'يرجى ملء جميع الحقول';
+        msg.className = 'error';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      const originalText = submitBtn.innerText;
+      submitBtn.innerText = 'جارٍ التحقق...';
+
+      try {
+        const res = await fetch(`/api/auth/${mode}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        msg.innerText = data.message || (data.success ? 'تم بنجاح' : 'حدث خطأ');
+        msg.className = data.success ? 'success' : 'error';
+
+        if (data.success) {
+          window.location.href = 'index.html';
         }
-    </script>
+      } catch (err) {
+        msg.innerText = 'تعذر الاتصال بالسيرفر.';
+        msg.className = 'error';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = originalText;
+      }
+    }
+
+    submitBtn.addEventListener('click', submit);
+    document.getElementById('password').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submit();
+    });
+  </script>
 </body>
 </html>
