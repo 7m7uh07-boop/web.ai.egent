@@ -1,69 +1,83 @@
 const express = require('express');
-const fs = require('fs');
 const path = require('path');
-const QRCode = require('qrcode');
+const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-const DATA_FILE = path.join(__dirname, 'users.json');
-
-// تأكد من وجود ملف قاعدة البيانات النصية
-if (!fs.existsSync(DATA_FILE)) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify({ users: [] }));
-}
-
-// نظام تسجيل الدخول وإنشاء الحساب
-app.post('/api/auth', (req, res) => {
-    const { username, password, action } = req.body;
-    const data = JSON.parse(fs.readFileSync(DATA_FILE));
-
-    if (action === 'register') {
-        if (data.users.find(u => u.username === username)) {
-            return res.json({ success: false, message: 'اسم المستخدم موجود مسبقاً' });
+// تخزين المساعدين في الذاكرة (مؤقتاً)
+let agentsData = {
+    "1": {
+        id: "1",
+        name: "new agent",
+        type: "IMFA Agents Default",
+        instructions: "أنت مساعد ذكي ولطيف تقوم بالرد على استفسارات العملاء باحترافية.",
+        provider: "gemini",
+        apiKeys: ["AIzaSyExampleKey123456"],
+        status: "draft", // draft, published
+        channels: {
+            wa: { connected: false, config: {} },
+            tg: { connected: false, config: {} },
+            dc: { connected: false, config: {} }
         }
-        data.users.push({ username, password, settings: {} });
-        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-        return res.json({ success: true, message: 'تم إنشاء الحساب بنجاح، يمكنك تسجيل الدخول الآن.' });
-    } else {
-        const user = data.users.find(u => u.username === username && u.password === password);
-        if (user) {
-            return res.json({ success: true, message: 'تم تسجيل الدخول بنجاح' });
-        }
-        return res.json({ success: false, message: 'بيانات الدخول غير صحيحة' });
     }
+};
+
+// API: جلب كل المساعدين
+app.get('/api/agents', (req, res) => {
+    res.json(Object.values(agentsData));
 });
 
-// حفظ إعدادات الـ API Key وتعليمات النظام
-app.post('/api/save_settings', (req, res) => {
-    const { username, settings } = req.body;
-    const data = JSON.parse(fs.readFileSync(DATA_FILE));
-    const userIndex = data.users.findIndex(u => u.username === username);
-    
-    if (userIndex !== -1) {
-        data.users[userIndex].settings = { ...data.users[userIndex].settings, ...settings };
-        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-        res.json({ success: true });
-    } else {
-        res.json({ success: false });
+// API: حفظ بيانات مساعد
+app.post('/api/agents/save', (req, res) => {
+    const agent = req.body;
+    if (!agent || !agent.id) {
+        return res.status(400).json({ error: "بيانات المساعد غير مكتملة" });
     }
+    agentsData[agent.id] = agent;
+    res.json({ success: true, message: "تم حفظ التغييرات بنجاح!", agent });
 });
 
-// توليد رمز QR لربط واتساب
-app.get('/api/wa-qr', async (req, res) => {
-    try {
-        // في البيئة الحقيقية، هنا يتم جلب كود الـ QR من مكتبة whatsapp-web.js
-        const mockData = "whatsapp-connect-mock-" + Date.now();
-        const qrImage = await QRCode.toDataURL(mockData);
-        res.json({ success: true, qr: qrImage });
-    } catch (err) {
-        res.status(500).json({ success: false });
+// API: التحقق والنشر
+app.post('/api/agents/publish', (req, res) => {
+    const { agentId } = req.body;
+    const agent = agentsData[agentId];
+
+    if (!agent) {
+        return res.status(404).json({ success: false, errors: ["المساعد غير موجود."] });
     }
+
+    const errors = [];
+
+    // 1. التحقق من التعليمات
+    if (!agent.instructions || agent.instructions.trim().length === 0) {
+        errors.push("تعليمات النظام فارغة. يرجى إضافة تعليمات للمساعد.");
+    }
+
+    // 2. التحقق من مفاتيح API
+    if (!agent.apiKeys || agent.apiKeys.length === 0 || agent.apiKeys.every(k => !k.trim())) {
+        errors.push("لم يتم إضافة أي مفتاح API صالح لمزود الذكاء الاصطناعي.");
+    }
+
+    // 3. التحقق من وجود قناة واحدة متصلة على الأقل
+    const hasConnectedChannel = Object.values(agent.channels || {}).some(c => c.connected === true);
+    if (!hasConnectedChannel) {
+        errors.push("يجب ربط قناة واحدة على الأقل (WhatsApp, Telegram, أو Discord) وتفعيلها.");
+    }
+
+    if (errors.length > 0) {
+        return res.json({ success: false, errors });
+    }
+
+    // تغيير الحالة إلى منشور
+    agent.status = "published";
+    res.json({ success: true, message: "تم نشر المساعد بنجاح! المساعد الآن يعمل ويتلقى الرسائل." });
 });
 
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`🚀 خادم مِنسَج يعمل الآن على المنفذ: ${PORT}`);
 });
