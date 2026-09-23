@@ -154,17 +154,86 @@ svg.wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
   text-align:center;color:var(--muted-2);font-size:12px;pointer-events:none;
 }
 
+/* شارة المستخدم وزر الخروج */
+.user-badge{
+  display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12.5px;
+  padding:0 4px;white-space:nowrap;
+}
+.user-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--wa);flex-shrink:0;}
+.logout-btn{
+  background:transparent;border:1px solid var(--line-c);color:var(--muted);
+  border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:inherit;
+  transition:border-color .12s ease,color .12s ease;
+}
+.logout-btn:hover{border-color:#E85C5C;color:#E85C5C;}
+
+/* ========================================== */
+/* صفحة تسجيل الدخول / إنشاء الحساب            */
+/* ========================================== */
+.login-body{
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;padding:20px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(230,184,92,0.08), transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(124,129,240,0.08), transparent 40%),
+    var(--bg);
+}
+.login-container{
+  width:100%;max-width:380px;background:var(--node);
+  border:1px solid var(--line-c);border-radius:20px;
+  padding:32px 28px;text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,0.45);
+}
+.login-logo{
+  width:52px;height:52px;margin:0 auto 14px;border-radius:14px;
+  background:linear-gradient(135deg,#E6B85C,#7C81F0);
+  display:flex;align-items:center;justify-content:center;
+  font-family:"Tajawal";font-weight:800;font-size:22px;color:#0A0C10;
+}
+.login-container h2{margin:0 0 6px;font-family:"Tajawal";font-size:20px;}
+.login-sub{color:var(--muted);font-size:12.5px;margin:0 0 22px;line-height:1.6;}
+.login-tabs{
+  display:flex;background:var(--bg);border:1px solid var(--line-c);
+  border-radius:12px;padding:4px;margin-bottom:16px;
+}
+.login-tab{
+  flex:1;padding:9px 0;border:none;background:transparent;color:var(--muted);
+  font-family:inherit;font-weight:600;font-size:13px;border-radius:9px;cursor:pointer;
+  transition:background .15s ease,color .15s ease;
+}
+.login-tab.active{background:var(--node-2);color:var(--text);}
+.login-container input{
+  width:100%;background:var(--bg);border:1px solid var(--line-c);
+  color:var(--text);padding:12px 14px;border-radius:10px;margin-bottom:10px;
+  font-family:inherit;font-size:14px;transition:border-color .15s ease;
+}
+.login-container input:focus{outline:none;border-color:var(--signal);}
+.login-submit{
+  width:100%;padding:12px 0;border:none;border-radius:10px;
+  background:var(--signal);color:#1A1204;font-weight:700;font-size:14px;
+  cursor:pointer;font-family:inherit;margin-top:6px;transition:filter .12s ease,transform .12s ease;
+}
+.login-submit:hover{filter:brightness(1.06);}
+.login-submit:active{transform:scale(.98);}
+.login-submit:disabled{opacity:.6;cursor:default;}
+#msg{min-height:16px;font-size:12.5px;margin-top:14px;}
+#msg.error{color:#E85C5C;}
+#msg.success{color:var(--wa);}
+
 /* Modals */
 .modal-overlay{
   position:fixed;inset:0;background:rgba(0,0,0,0.7);
-  display:none;align-items:center;justify-content:center;z-index:100;
+  display:flex;align-items:center;justify-content:center;z-index:100;
   backdrop-filter:blur(3px);
+  opacity:0;pointer-events:none;transition:opacity .18s ease;
 }
-.modal-overlay.active{ display:flex; }
+.modal-overlay.active{ opacity:1; pointer-events:auto; }
 .modal{
   background:var(--node);border:1px solid var(--line-c);border-radius:16px;
   padding:20px;width:90%;max-width:440px;color:var(--text);
+  transform:scale(.96) translateY(6px);transition:transform .18s ease;
 }
+.modal-overlay.active .modal{ transform:scale(1) translateY(0); }
 .modal h3{ margin-top:0; font-family:"Tajawal"; }
 .modal input, .modal textarea, .modal select{
   width:100%; background:var(--bg); border:1px solid var(--line-c);
