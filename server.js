@@ -5,7 +5,13 @@ const QRCode = require('qrcode');
 const TelegramBot = require('node-telegram-bot-api');
 const { Client, GatewayIntentBits } = require('discord.js');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const { makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const {
+    makeWASocket,
+    useMultiFileAuthState,
+    DisconnectReason,
+    fetchLatestBaileysVersion,
+    Browsers
+} = require('@whiskeysockets/baileys');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -49,7 +55,7 @@ async function generateAIResponse(agent, userMessage) {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
+            model: "gemini-flash-latest",
             systemInstruction: agent.instructions || "أنت مساعد ذكي مفيد."
         });
 
@@ -64,12 +70,29 @@ async function generateAIResponse(agent, userMessage) {
 // ==========================================
 // إدارة واتساب الحقيقي (Baileys)
 // ==========================================
-async function startWhatsAppBot(agentId) {
+// عدد محاولات إعادة الربط بعد خطأ "515 restart required" (وهو أمر طبيعي متوقع
+// مباشرة بعد مسح رمز QR لأول مرة) - نسمح بمحاولة واحدة تلقائية فقط تفاديًا لحلقة
+// إعادة اتصال لا نهائية تجعل الربط "يأخذ وقتًا طويلاً ثم يفشل".
+const waRestartAttempts = {};
+
+async function startWhatsAppBot(agentId, isRestart = false) {
+    // تفادي إنشاء أكثر من اتصال (socket) لنفس المساعد في نفس الوقت
+    if (activeWhatsAppSockets[agentId] && !isRestart) {
+        return activeWhatsAppSockets[agentId];
+    }
+
     const { state, saveCreds } = await useMultiFileAuthState(`./auth_wa_${agentId}`);
-    
+    // جلب أحدث إصدار من بروتوكول واتساب ويب - استخدام إصدار قديم مُثبَّت في المكتبة
+    // هو السبب الأكثر شيوعًا لتعليق الربط طويلاً ثم فشله
+    const { version } = await fetchLatestBaileysVersion();
+
     const sock = makeWASocket({
+        version,
         auth: state,
-        printQRInTerminal: false
+        printQRInTerminal: false,
+        browser: Browsers.ubuntu('Chrome'),
+        syncFullHistory: false,
+        connectTimeoutMs: 60000
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -86,15 +109,33 @@ async function startWhatsAppBot(agentId) {
         if (connection === 'open') {
             console.log(`✅ تم ربط واتساب بنجاح للمساعد [${agentId}]`);
             delete whatsappQRCodes[agentId];
+            waRestartAttempts[agentId] = 0;
             if (agentsData[agentId]) {
                 agentsData[agentId].channels.wa.connected = true;
             }
         } else if (connection === 'close') {
-            const shouldReconnect = (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut);
-            if (shouldReconnect) {
-                startWhatsAppBot(agentId);
-            } else {
+            const statusCode = lastDisconnect?.error?.output?.statusCode;
+            const loggedOut = statusCode === DisconnectReason.loggedOut;
+
+            delete activeWhatsAppSockets[agentId];
+
+            if (loggedOut) {
                 if (agentsData[agentId]) agentsData[agentId].channels.wa.connected = false;
+                waRestartAttempts[agentId] = 0;
+                return;
+            }
+
+            // "restartRequired" (515) متوقع مرة واحدة مباشرة بعد أول مسح لرمز QR - نعيد
+            // المحاولة تلقائيًا. أي انقطاع لاحق (بعد نجاح الربط) نعيد محاولته أيضًا لكن
+            // بحد أقصى لعدد المحاولات حتى لا يبقى الطلب "معلّقًا" وقتًا طويلاً بلا فائدة.
+            waRestartAttempts[agentId] = (waRestartAttempts[agentId] || 0) + 1;
+            if (waRestartAttempts[agentId] <= 5) {
+                setTimeout(() => startWhatsAppBot(agentId, true), 1500);
+            } else {
+                console.error(`❌ فشل ربط واتساب للمساعد [${agentId}] بعد عدة محاولات.`);
+                if (agentsData[agentId]) agentsData[agentId].channels.wa.connected = false;
+                delete whatsappQRCodes[agentId];
+                waRestartAttempts[agentId] = 0;
             }
         }
     });
@@ -119,6 +160,7 @@ async function startWhatsAppBot(agentId) {
     });
 
     activeWhatsAppSockets[agentId] = sock;
+    return sock;
 }
 
 // ==========================================
