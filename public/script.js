@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     provider: "gemini",
     customEndpoint: "",
     customModelName: "",
+    imfaAgentId: "",
     apiKeys: [],
     status: "draft",
     channels: {
@@ -29,6 +30,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   const el = (id) => document.getElementById(id);
 
+  // تنظيف رابط الـ Custom Endpoint من صيغة Markdown الملصوقة بالخطأ
+  function sanitizeCustomUrl(raw) {
+    if (!raw) return "";
+    let url = String(raw).trim();
+    const mdMatch = url.match(/\]\((https?:\/\/[^)\s]+)\)/);
+    if (mdMatch) url = mdMatch[1];
+    return url.replace(/[\[\]]/g, '').trim();
+  }
+
   const dropdown = el('agent-dropdown');
   const canvasTarget = el('canvas-target');
 
@@ -37,22 +47,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   function openModal(modalId) {
     const modal = el(modalId);
-    if (modal) modal.style.display = 'flex';
+    if (modal) modal.classList.add('active');
   }
   function closeModal(modalId) {
     const modal = el(modalId);
-    if (modal) modal.style.display = 'none';
+    if (modal) modal.classList.remove('active');
   }
   function closeModals() {
-    document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
     if (qrInterval) { clearInterval(qrInterval); qrInterval = null; }
   }
-  // إتاحتها عالمياً لأن بعض الأزرار في HTML تستدعيها عبر onclick="closeModals()"
   window.closeModals = closeModals;
   window.closeModal = closeModal;
   window.openModal = openModal;
 
-  // إغلاق المودال عند الضغط خارج صندوقه
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) closeModals();
@@ -74,22 +82,18 @@ document.addEventListener('DOMContentLoaded', () => {
     el('display-agent-name').innerText = currentAgent.name;
     el('display-agent-type').innerText = currentAgent.type;
 
-    // التعليمات
     const len = (currentAgent.instructions || '').length;
     const pct = Math.min(100, Math.round((len / 5000) * 100));
     el('instructions-progress').style.width = pct + '%';
     el('instructions-count').innerText = `${len} / 5000`;
 
-    // المزود
-    const providerNames = { gemini: 'Gemini', openai: 'OpenAI', anthropic: 'Anthropic', custom: 'Custom' };
+    const providerNames = { gemini: 'Gemini', openai: 'OpenAI', anthropic: 'Anthropic', imfa: 'IMFA Agent', custom: 'Custom' };
     el('display-provider-name').innerText = providerNames[currentAgent.provider] || currentAgent.provider;
 
-    // القنوات
     updateChannelUI('wa');
     updateChannelUI('tg');
     updateChannelUI('dc');
 
-    // الأسلاك (الرسوم المتحركة)
     const hasInstructions = len > 0;
     const hasKeys = currentAgent.apiKeys && currentAgent.apiKeys.length > 0;
     toggleWire('wire-agent-hub', hasInstructions);
@@ -281,10 +285,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const nodeHub = el('node-hub');
   const selectProvider = el('select-provider');
   const customDetails = el('custom-model-details');
+  const imfaDetails = el('imfa-agent-details');
+  const inputImfaAgentId = el('input-imfa-agent-id');
   const inputCustomEndpoint = el('input-custom-endpoint');
   const inputCustomModelName = el('input-custom-model-name');
   const apiKeysContainer = el('api-keys-container');
   const addApiKeyBtn = el('add-api-key-btn');
+
+  function toggleProviderFields() {
+    customDetails.style.display = selectProvider.value === 'custom' ? 'block' : 'none';
+    imfaDetails.style.display = selectProvider.value === 'imfa' ? 'block' : 'none';
+  }
 
   function addApiKeyRow(value = '') {
     const row = document.createElement('div');
@@ -303,17 +314,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (selectProvider) {
-    selectProvider.addEventListener('change', () => {
-      customDetails.style.display = selectProvider.value === 'custom' ? 'block' : 'none';
-    });
+    selectProvider.addEventListener('change', toggleProviderFields);
   }
 
   if (nodeHub) {
     nodeHub.addEventListener('click', () => {
       selectProvider.value = currentAgent.provider || 'gemini';
-      customDetails.style.display = selectProvider.value === 'custom' ? 'block' : 'none';
+      toggleProviderFields();
       inputCustomEndpoint.value = currentAgent.customEndpoint || '';
       inputCustomModelName.value = currentAgent.customModelName || '';
+      inputImfaAgentId.value = currentAgent.imfaAgentId || '';
 
       apiKeysContainer.innerHTML = '';
       if (currentAgent.apiKeys && currentAgent.apiKeys.length > 0) {
@@ -329,8 +339,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (saveProviderBtn) {
     saveProviderBtn.addEventListener('click', () => {
       currentAgent.provider = selectProvider.value;
-      currentAgent.customEndpoint = inputCustomEndpoint.value.trim();
+      currentAgent.customEndpoint = sanitizeCustomUrl(inputCustomEndpoint.value.trim());
       currentAgent.customModelName = inputCustomModelName.value.trim();
+      currentAgent.imfaAgentId = inputImfaAgentId.value.trim();
 
       const keys = Array.from(apiKeysContainer.querySelectorAll('.api-key-input'))
         .map(i => i.value.trim())
@@ -533,14 +544,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const menuDelete = el('menu-delete');
   if (menuDelete) {
-    menuDelete.addEventListener('click', () => {
+    menuDelete.addEventListener('click', async () => {
       const ids = Object.keys(agents);
       if (ids.length <= 1) {
         showResult('⚠️ تنبيه', 'لا يمكن حذف الوكيل الوحيد المتبقي.');
         return;
       }
       if (!confirm(`هل أنت متأكد من حذف المساعد "${currentAgent.name}"؟`)) return;
-      delete agents[currentAgent.id];
+      const deletedId = currentAgent.id;
+      try {
+        await fetch(`/api/agents/${deletedId}`, { method: 'DELETE' });
+      } catch (err) {
+        console.error('تعذر حذف المساعد من السيرفر:', err);
+      }
+      delete agents[deletedId];
       currentAgent = Object.values(agents)[0];
       refreshDropdown();
       refreshUI();
@@ -562,7 +579,41 @@ document.addEventListener('DOMContentLoaded', () => {
   if (zoomResetBtn) zoomResetBtn.addEventListener('click', () => { zoomLevel = 1; applyZoom(); });
 
   // ==========================================
-  // البدء
+  // البدء - تحقق من تسجيل الدخول أولاً
   // ==========================================
-  loadAgents();
+  async function checkAuthAndStart() {
+    try {
+      const res = await fetch('/api/auth/me');
+      if (!res.ok) {
+        window.location.href = 'login.html';
+        return;
+      }
+      const data = await res.json();
+      renderUserBadge(data.username);
+      loadAgents();
+    } catch (err) {
+      console.error('تعذر التحقق من تسجيل الدخول:', err);
+      window.location.href = 'login.html';
+    }
+  }
+
+  function renderUserBadge(username) {
+    const agentSelect = document.querySelector('.agent-select');
+    if (!agentSelect) return;
+    const badge = document.createElement('div');
+    badge.className = 'user-badge';
+    badge.innerHTML = `<span class="dot"></span><span>${username}</span>`;
+    const logoutBtn = document.createElement('button');
+    logoutBtn.className = 'logout-btn';
+    logoutBtn.type = 'button';
+    logoutBtn.innerText = 'خروج';
+    logoutBtn.addEventListener('click', async () => {
+      try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (err) {}
+      window.location.href = 'login.html';
+    });
+    agentSelect.parentElement.insertBefore(badge, agentSelect);
+    agentSelect.parentElement.appendChild(logoutBtn);
+  }
+
+  checkAuthAndStart();
 });
